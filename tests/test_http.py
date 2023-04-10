@@ -121,9 +121,9 @@ def test_gunicorn_application_custom_options(workers, threads, keepalive):
     import functions_framework._http.gunicorn
 
     os.environ[functions_framework._http.gunicorn.GUNICORN_OPTIONS_SEPARATOR_ENV] = "|"
-    os.environ[functions_framework._http.gunicorn.GUNICORN_OPTIONS_ENV] = (
-        f"workers={workers}=int|threads={threads}=int|keepalive={keepalive}=int"
-    )
+    os.environ[
+        functions_framework._http.gunicorn.GUNICORN_OPTIONS_ENV
+    ] = f"workers={workers}=int|threads={threads}=int|keepalive={keepalive}=int"
 
     gunicorn_app = functions_framework._http.gunicorn.GunicornApplication(
         app, host, port, False, **options
@@ -139,7 +139,7 @@ def test_gunicorn_application_custom_options(workers, threads, keepalive):
         "timeout": 0,
         "loglevel": "error",
         "limit_request_line": 0,
-        "keepalive": keepalive
+        "keepalive": keepalive,
     }
 
     assert gunicorn_app.cfg.bind == ["1.2.3.4:1234"]
