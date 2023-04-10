@@ -111,8 +111,11 @@ def test_gunicorn_application(debug):
 
 
 @pytest.mark.skipif("platform.system() == 'Windows'")
-@pytest.mark.parametrize("workers, threads, keepalive", [(1, 4, 50), (2, 8, 1000)])
-def test_gunicorn_application_custom_options(workers, threads, keepalive):
+@pytest.mark.parametrize(
+    "workers, threads, keepalive, proc_name",
+    [(1, 4, 50, "functions"), (2, 8, 1000, "fn")],
+)
+def test_gunicorn_application_custom_options(workers, threads, keepalive, proc_name):
     app = pretend.stub()
     host = "1.2.3.4"
     port = "1234"
@@ -121,9 +124,10 @@ def test_gunicorn_application_custom_options(workers, threads, keepalive):
     import functions_framework._http.gunicorn
 
     os.environ[functions_framework._http.gunicorn.GUNICORN_OPTIONS_SEPARATOR_ENV] = "|"
-    os.environ[
-        functions_framework._http.gunicorn.GUNICORN_OPTIONS_ENV
-    ] = f"workers={workers}=int|threads={threads}=int|keepalive={keepalive}=int"
+    os.environ[functions_framework._http.gunicorn.GUNICORN_OPTIONS_ENV] = (
+        f"workers={workers}=int|threads={threads}=int|keepalive={keepalive}=int|"
+        f"proc_name={proc_name}"
+    )
 
     gunicorn_app = functions_framework._http.gunicorn.GunicornApplication(
         app, host, port, False, **options
@@ -140,6 +144,7 @@ def test_gunicorn_application_custom_options(workers, threads, keepalive):
         "loglevel": "error",
         "limit_request_line": 0,
         "keepalive": keepalive,
+        "proc_name": proc_name,
     }
 
     assert gunicorn_app.cfg.bind == ["1.2.3.4:1234"]
@@ -147,6 +152,7 @@ def test_gunicorn_application_custom_options(workers, threads, keepalive):
     assert gunicorn_app.cfg.threads == threads
     assert gunicorn_app.cfg.timeout == 0
     assert gunicorn_app.cfg.keepalive == keepalive
+    assert gunicorn_app.cfg.proc_name == proc_name
     assert gunicorn_app.load() == app
 
 
