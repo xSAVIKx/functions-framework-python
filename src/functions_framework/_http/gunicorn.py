@@ -12,30 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from typing import Any, Optional
 
 import gunicorn.app.base
 
-GUNICORN_OPTIONS_SEPARATOR_ENV: str = "GUNICORN_OPTIONS_SEPARATOR"
+GUNICORN_OPTIONS_SEPARATOR_ENV = "GUNICORN_OPTIONS_SEPARATOR"
 """The name of the env variable that holds a separator of the Gunicorn options."""
-GUNICORN_OPTIONS_ENV: str = "GUNICORN_OPTIONS"
+GUNICORN_OPTIONS_ENV = "GUNICORN_OPTIONS"
 """The name of the env variable that holds Gunicorn options in a key=value format
 where each option is separated from the other one with a GUNICORN_OPTIONS_SEPARATOR 
 (or `,`) by default.
 """
 
 
-def _gunicorn_env_options() -> dict[str, Any]:
+def _gunicorn_env_options():
     """Parses Gunicorn options provided through environment variable if any are provided.
 
     The Gunicorn options are specified using `GUNICORN_OPTIONS_<option-name>` formatted options
     that can override the standard provided options if specified.
     """
-    gunicorn_options: Optional[str] = os.getenv(GUNICORN_OPTIONS_ENV)
+    gunicorn_options = os.getenv(GUNICORN_OPTIONS_ENV)
     if not gunicorn_options:
         return {}
-    options_separator: str = os.getenv(GUNICORN_OPTIONS_SEPARATOR_ENV, ",")
-    options: list[str] = gunicorn_options.split(options_separator)
+    options_separator = os.getenv(GUNICORN_OPTIONS_SEPARATOR_ENV, ",")
+    options = gunicorn_options.split(options_separator)
     result = {}
     for option in options:
         option_config = option.split("=", maxsplit=2)
