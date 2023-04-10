@@ -112,10 +112,12 @@ def test_gunicorn_application(debug):
 
 @pytest.mark.skipif("platform.system() == 'Windows'")
 @pytest.mark.parametrize(
-    "workers, threads, keepalive, proc_name",
-    [(1, 4, 50, "functions"), (2, 8, 1000, "fn")],
+    "workers, threads, keepalive, proc_name, suppress_ragged_eofs",
+    [(1, 4, 50, "functions", True), (2, 8, 1000, "fn", False)],
 )
-def test_gunicorn_application_custom_options(workers, threads, keepalive, proc_name):
+def test_gunicorn_application_custom_options(
+    workers, threads, keepalive, proc_name, suppress_ragged_eofs
+):
     app = pretend.stub()
     host = "1.2.3.4"
     port = "1234"
@@ -126,7 +128,7 @@ def test_gunicorn_application_custom_options(workers, threads, keepalive, proc_n
     os.environ[functions_framework._http.gunicorn.GUNICORN_OPTIONS_SEPARATOR_ENV] = "|"
     os.environ[functions_framework._http.gunicorn.GUNICORN_OPTIONS_ENV] = (
         f"workers={workers}=int|threads={threads}=int|keepalive={keepalive}=int|"
-        f"proc_name={proc_name}"
+        f"proc_name={proc_name}|suppress_ragged_eofs={suppress_ragged_eofs}=bool"
     )
 
     gunicorn_app = functions_framework._http.gunicorn.GunicornApplication(
@@ -145,6 +147,7 @@ def test_gunicorn_application_custom_options(workers, threads, keepalive, proc_n
         "limit_request_line": 0,
         "keepalive": keepalive,
         "proc_name": proc_name,
+        "suppress_ragged_eofs": suppress_ragged_eofs,
     }
 
     assert gunicorn_app.cfg.bind == ["1.2.3.4:1234"]
@@ -153,6 +156,7 @@ def test_gunicorn_application_custom_options(workers, threads, keepalive, proc_n
     assert gunicorn_app.cfg.timeout == 0
     assert gunicorn_app.cfg.keepalive == keepalive
     assert gunicorn_app.cfg.proc_name == proc_name
+    assert gunicorn_app.cfg.suppress_ragged_eofs == suppress_ragged_eofs
     assert gunicorn_app.load() == app
 
 

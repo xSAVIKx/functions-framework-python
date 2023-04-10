@@ -24,6 +24,10 @@ where each option is separated from the other one with a GUNICORN_OPTIONS_SEPARA
 """
 
 
+def _str_2_bool(v):
+    return v.lower() in ("yes", "true", "t", "1")
+
+
 def _gunicorn_env_options():
     """Parses Gunicorn options provided through environment variable if any are provided.
 
@@ -44,10 +48,8 @@ def _gunicorn_env_options():
             key, value, value_type = option_config
             if value_type == "int":
                 value = int(value)
-            elif value_type == "float":
-                value = float(value)
             elif value_type == "bool":
-                value = bool(value)
+                value = _str_2_bool(value)
         else:
             raise TypeError(
                 f"Gunicorn option config must be of format key=value(=type), but was: {option}"
