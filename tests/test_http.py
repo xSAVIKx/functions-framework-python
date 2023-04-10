@@ -160,6 +160,18 @@ def test_gunicorn_application_custom_options(
     assert gunicorn_app.load() == app
 
 
+def test_gunicorn_application_custom_options_parse_failure():
+    import functions_framework._http.gunicorn
+
+    os.environ[
+        functions_framework._http.gunicorn.GUNICORN_OPTIONS_ENV
+    ] = "invalid-option"
+    with pytest.raises(TypeError):
+        functions_framework._http.gunicorn._gunicorn_env_options()
+
+    os.environ.pop(functions_framework._http.gunicorn.GUNICORN_OPTIONS_ENV)
+
+
 @pytest.mark.parametrize("debug", [True, False])
 def test_flask_application(debug):
     app = pretend.stub(run=pretend.call_recorder(lambda *a, **kw: None))
