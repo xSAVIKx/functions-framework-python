@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import os
 import platform
 import sys
 
@@ -107,6 +107,46 @@ def test_gunicorn_application(debug):
     assert gunicorn_app.cfg.workers == 1
     assert gunicorn_app.cfg.threads == 1024
     assert gunicorn_app.cfg.timeout == 0
+    assert gunicorn_app.load() == app
+
+
+@pytest.mark.skipif("platform.system() == 'Windows'")
+@pytest.mark.parametrize("workers, threads, keepalive", [(1, 4, 50), (2, 8, 1000)])
+def test_gunicorn_application_custom_options(workers, threads, keepalive):
+    app = pretend.stub()
+    host = "1.2.3.4"
+    port = "1234"
+    options = {}
+
+    import functions_framework._http.gunicorn
+
+    os.environ[functions_framework._http.gunicorn.GUNICORN_OPTIONS_SEPARATOR_ENV] = "|"
+    os.environ[functions_framework._http.gunicorn.GUNICORN_OPTIONS_ENV] = (
+        f"workers={workers}=int|threads={threads}=int|keepalive={keepalive}=int"
+    )
+
+    gunicorn_app = functions_framework._http.gunicorn.GunicornApplication(
+        app, host, port, False, **options
+    )
+    os.environ.pop(functions_framework._http.gunicorn.GUNICORN_OPTIONS_SEPARATOR_ENV)
+    os.environ.pop(functions_framework._http.gunicorn.GUNICORN_OPTIONS_ENV)
+
+    assert gunicorn_app.app == app
+    assert gunicorn_app.options == {
+        "bind": "%s:%s" % (host, port),
+        "workers": workers,
+        "threads": threads,
+        "timeout": 0,
+        "loglevel": "error",
+        "limit_request_line": 0,
+        "keepalive": keepalive
+    }
+
+    assert gunicorn_app.cfg.bind == ["1.2.3.4:1234"]
+    assert gunicorn_app.cfg.workers == workers
+    assert gunicorn_app.cfg.threads == threads
+    assert gunicorn_app.cfg.timeout == 0
+    assert gunicorn_app.cfg.keepalive == keepalive
     assert gunicorn_app.load() == app
 
 

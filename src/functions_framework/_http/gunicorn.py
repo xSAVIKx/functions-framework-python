@@ -11,8 +11,50 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
+from typing import Any, Optional
 
 import gunicorn.app.base
+
+GUNICORN_OPTIONS_SEPARATOR_ENV: str = "GUNICORN_OPTIONS_SEPARATOR"
+"""The name of the env variable that holds a separator of the Gunicorn options."""
+GUNICORN_OPTIONS_ENV: str = "GUNICORN_OPTIONS"
+"""The name of the env variable that holds Gunicorn options in a key=value format
+where each option is separated from the other one with a GUNICORN_OPTIONS_SEPARATOR 
+(or `,`) by default.
+"""
+
+
+def _gunicorn_env_options() -> dict[str, Any]:
+    """Parses Gunicorn options provided through environment variable if any are provided.
+
+    The Gunicorn options are specified using `GUNICORN_OPTIONS_<option-name>` formatted options
+    that can override the standard provided options if specified.
+    """
+    gunicorn_options: Optional[str] = os.getenv(GUNICORN_OPTIONS_ENV)
+    if not gunicorn_options:
+        return {}
+    options_separator: str = os.getenv(GUNICORN_OPTIONS_SEPARATOR_ENV, ",")
+    options: list[str] = gunicorn_options.split(options_separator)
+    result = {}
+    for option in options:
+        option_config = option.split("=", maxsplit=2)
+        if len(option_config) == 2:
+            key, value = option_config
+        elif len(option_config) == 3:
+            key, value, value_type = option_config
+            if value_type == "int":
+                value = int(value)
+            elif value_type == "float":
+                value = float(value)
+            elif value_type == "bool":
+                value = bool(value)
+        else:
+            raise TypeError(
+                f"Gunicorn option config must be of format key=value(=type), but was: {option}"
+            )
+        result[key] = value
+    return result
 
 
 class GunicornApplication(gunicorn.app.base.BaseApplication):
@@ -26,6 +68,7 @@ class GunicornApplication(gunicorn.app.base.BaseApplication):
             "limit_request_line": 0,
         }
         self.options.update(options)
+        self.options.update(_gunicorn_env_options())
         self.app = app
         super().__init__()
 
